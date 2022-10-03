@@ -57,72 +57,82 @@ export const store = createStore({
             state.current_tab = newTab;
         },
         async launchGame(state: any) {
-            // TODO update installation if release track was switched
+            switch (state.northstar_state) {
+                // TODO update installation if release track was switched
 
-            // Install northstar if it wasn't detected.
-            if (state.northstar_state === NorthstarState.INSTALL) {
-                let install_northstar_result = invoke("install_northstar_caller", { gamePath: state.game_path, northstarPackageName: ReleaseCanal.RELEASE });
-                state.northstar_state = NorthstarState.INSTALLING;
-
-                await install_northstar_result.then((message) => {
-                    console.log(message);
-                })
-                    .catch((error) => {
-                        console.error(error);
-                        alert(error);
-                    });
-
-                _get_northstar_version_number(state);
-                return;
-            }
+                // Install northstar if it wasn't detected.
+                case NorthstarState.INSTALL:
+                    {
+                        let install_northstar_result = invoke("install_northstar_caller", { gamePath: state.game_path, northstarPackageName: ReleaseCanal.RELEASE });
+                        state.northstar_state = NorthstarState.INSTALLING;
+        
+                        await install_northstar_result.then((message) => {
+                            console.log(message);
+                        })
+                            .catch((error) => {
+                                console.error(error);
+                                alert(error);
+                            });
+        
+                        _get_northstar_version_number(state);
+                    }
+                    break;
 
             // Update northstar if it is outdated.
-            if (state.northstar_state === NorthstarState.MUST_UPDATE) {
-                // Updating is the same as installing, simply overwrites the existing files
-                let install_northstar_result = invoke("install_northstar_caller", { gamePath: state.game_path, northstarPackageName: ReleaseCanal.RELEASE });
-                state.northstar_state = NorthstarState.UPDATING;
-
-                await install_northstar_result.then((message) => {
-                    console.log(message);
-                })
-                    .catch((error) => {
-                        console.error(error);
-                        alert(error);
-                    });
-
-                _get_northstar_version_number(state);
-                return;
-            }
+            case NorthstarState.MUST_UPDATE:
+                {
+                    // Updating is the same as installing, simply overwrites the existing files
+                    let install_northstar_result = invoke("install_northstar_caller", { gamePath: state.game_path, northstarPackageName: ReleaseCanal.RELEASE });
+                    state.northstar_state = NorthstarState.UPDATING;
+    
+                    await install_northstar_result.then((message) => {
+                        console.log(message);
+                    })
+                        .catch((error) => {
+                            console.error(error);
+                            alert(error);
+                        });
+    
+                    _get_northstar_version_number(state);
+                }
+                break;
 
             // Game is ready to play
-            if (state.northstar_state === NorthstarState.READY_TO_PLAY) {
-                // Show an error message if Origin is not running.
-                if (!state.origin_is_running) {
-                    ElNotification({
-                        title: 'Origin is not running',
-                        message: "Northstar cannot launch while you're not authenticated with Origin.",
-                        type: 'warning',
-                        position: 'bottom-right'
-                    });
+            case NorthstarState.READY_TO_PLAY:
+                {
+                    // Show an error message if Origin is not running.
+                    if (!state.origin_is_running) {
+                        ElNotification({
+                            title: 'Origin is not running',
+                            message: "Northstar cannot launch while you're not authenticated with Origin.",
+                            type: 'warning',
+                            position: 'bottom-right'
+                        });
 
-                    // If Origin isn't running, end here
-                    return;
+                        // If Origin isn't running, end here
+                        return;
+                    }
+
+                    let game_install = {
+                        game_path: state.game_path,
+                        install_type: state.install_type
+                    } as GameInstall;
+                    await invoke("launch_northstar_caller", { gameInstall: game_install })
+                        .then((message) => {
+                            console.log(message);
+                            // NorthstarState.RUNNING
+                        })
+                        .catch((error) => {
+                            console.error(error);
+                            alert(error);
+                        });
                 }
+                break;
 
-                let game_install = {
-                    game_path: state.game_path,
-                    install_type: state.install_type
-                } as GameInstall;
-                await invoke("launch_northstar_caller", { gameInstall: game_install })
-                    .then((message) => {
-                        console.log(message);
-                        // NorthstarState.RUNNING
-                    })
-                    .catch((error) => {
-                        console.error(error);
-                        alert(error);
-                    });
-                return;
+                // Fallback
+                default:
+                    alert(`Not implemented yet: ${state.northstar_state}`);
+                    break;
             }
         }
     }
