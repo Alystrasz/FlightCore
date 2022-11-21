@@ -145,9 +145,17 @@ export default defineComponent({
             if (this.modsBeingInstalled.includes(mod.name)) {
                 return ThunderstoreModStatus.BEING_INSTALLED;
             }
-            // TODO ensure mod is up-to-date
-            if (this.$store.state.installed_mods.map((mod: NorthstarMod) => mod.thunderstore_mod_string).includes(mod.versions[0].full_name)) {
-                return ThunderstoreModStatus.INSTALLED;
+            for (let installed_mod of this.$store.state.installed_mods) {
+                if (installed_mod.thunderstore_mod_string !== null) {
+                    if (mod.full_name == installed_mod.thunderstore_mod_string.slice(0, -6)) {
+                        // Mod is installed
+                        if (mod.versions[0].full_name !== installed_mod.thunderstore_mod_string) {
+                            // Mod is outdated
+                            return ThunderstoreModStatus.OUTDATED;
+                        }
+                        return ThunderstoreModStatus.INSTALLED;
+                    }
+                }
             }
             return ThunderstoreModStatus.NOT_INSTALLED;
         },
